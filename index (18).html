@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎧 Мой стрим-плеер</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e10;
+    --panel: #18181b;
+    --panel-2: #1f1f23;
+    --border: #2a2a2e;
+    --text: #efeff1;
+    --muted: #adadb8;
+    --accent: #9147ff;
+    --accent-hover: #772ce8;
+  }
+
+  body {
+    font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ==== TOP BAR ==== */
+  header {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  header h1 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-right: 10px;
+    white-space: nowrap;
+  }
+
+  header input, header select {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    outline: none;
+  }
+
+  header input:focus, header select:focus {
+    border-color: var(--accent);
+  }
+
+  header input { width: 180px; }
+
+  header button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.15s;
+  }
+
+  header button:hover { background: var(--accent-hover); }
+
+  /* ==== MAIN LAYOUT ==== */
+  main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 10px;
+    padding: 10px;
+    min-height: 0;
+  }
+
+  .left-col {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 0;
+  }
+
+  .video-wrap {
+    flex: 1;
+    background: black;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    min-height: 0;
+  }
+
+  .video-wrap iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+  }
+
+  .chat-wrap {
+    background: var(--panel);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chat-wrap iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  .chat-header {
+    padding: 8px 12px;
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .chat-header a {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 400;
+  }
+
+  .chat-header a:hover { text-decoration: underline; }
+
+  /* ==== MUSIC PLAYER ==== */
+  .music-player {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .track-info {
+    flex: 1;
+    min-width: 180px;
+  }
+
+  .track-title {
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .track-sub {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .controls button {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.15s;
+  }
+
+  .controls button:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .controls button.play {
+    width: 46px;
+    height: 46px;
+    font-size: 18px;
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .volume-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 140px;
+  }
+
+  .volume-box input[type="range"] {
+    flex: 1;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--panel-2);
+    border-radius: 2px;
+    margin-top: 6px;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.1s linear;
+  }
+
+  /* ==== PLAYLIST ==== */
+  .playlist {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    max-height: 180px;
+    overflow-y: auto;
+    font-size: 13px;
+  }
+
+  .playlist h3 {
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+
+  .playlist-item {
+    padding: 6px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: 0.1s;
+  }
+
+  .playlist-item:hover { background: var(--panel-2); }
+
+  .playlist-item.active {
+    background: var(--accent);
+    color: white;
+  }
+
+  .playlist-item .num {
+    color: var(--muted);
+    font-size: 11px;
+    width: 18px;
+  }
+
+  .playlist-item.active .num { color: rgba(255,255,255,0.7); }
+
+  .playlist-add {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+
+  .playlist-add input {
+    flex: 1;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    outline: none;
+  }
+
+  .playlist-add button {
+    background: var(--panel-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+
+  .playlist-add button:hover { background: var(--accent); border-color: var(--accent); }
+
+  /* ==== RESPONSIVE ==== */
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+    .chat-wrap { height: 300px; }
+  }
+
+  /* ==== SCROLLBAR ==== */
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: var(--panel); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #3a3a40; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎧 Мой стрим-плеер</h1>
+
+  <select id="platform">
+    <option value="twitch">Twitch</option>
+    <option value="kick">Kick</option>
+  </select>
+
+  <input id="channel" type="text" placeholder="Имя канала" value="xqc">
+
+  <button id="loadBtn">Загрузить</button>
+</header>
+
+<main>
+  <div class="left-col">
+
+    <!-- STREAM -->
+    <div class="video-wrap">
+      <iframe id="streamFrame" allowfullscreen></iframe>
+    </div>
+
+    <!-- MUSIC PLAYER -->
+    <div class="music-player">
+      <div class="track-info">
+        <div class="track-title" id="trackTitle">Трек не выбран</div>
+        <div class="track-sub" id="trackSub">Добавь ссылки в плейлист ниже</div>
+        <div class="progress-bar" id="progressBar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="prevBtn" title="Назад">⏮</button>
+        <button id="playBtn" class="play" title="Play/Pause">▶</button>
+        <button id="nextBtn" title="Вперёд">⏭</button>
+      </div>
+
+      <div class="volume-box">
+        <span>🔊</span>
+        <input id="volume" type="range" min="0" max="1" step="0.01" value="0.7">
+      </div>
+    </div>
+
+    <!-- PLAYLIST -->
+    <div class="playlist">
+      <h3>Плейлист</h3>
+      <div id="playlistItems"></div>
+      <div class="playlist-add">
+        <input id="trackUrl" type="text" placeholder="URL mp3 или название + исполнитель">
+        <button id="addTrack">Добавить</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CHAT -->
+  <div class="chat-wrap">
+    <div class="chat-header">
+      <span>💬 Чат</span>
+      <a id="chatLink" href="#" target="_blank">Открыть на сайте ↗</a>
+    </div>
+    <iframe id="chatFrame"></iframe>
+  </div>
+</main>
+
+<audio id="audio"></audio>
+
+<script>
+/* ============================================================
+   КОНФИГ
+   ============================================================ */
+const CONFIG = {
+  // parent = домен, на котором запущено приложение.
+  // Для localhost: "localhost". Для своего сайта: "mysite.com"
+  parent: location.hostname || 'localhost',
+};
+
+/* ============================================================
+   СТРИМ + ЧАТ
+   ============================================================ */
+const streamFrame = document.getElementById('streamFrame');
+const chatFrame   = document.getElementById('chatFrame');
+const chatLink    = document.getElementById('chatLink');
+const platformSel = document.getElementById('platform');
+const channelInput = document.getElementById('channel');
+const loadBtn = document.getElementById('loadBtn');
+
+function buildUrls(platform, channel) {
+  const p = CONFIG.parent;
+  if (platform === 'twitch') {
+    return {
+      stream: `https://player.twitch.tv/?channel=${channel}&parent=${p}&muted=true&autoplay=true`,
+      chat:   `https://www.twitch.tv/embed/${channel}/chat?parent=${p}&darkpopout`,
+      site:   `https://www.twitch.tv/${channel}`,
+    };
+  }
+  if (platform === 'kick') {
+    return {
+      stream: `https://player.kick.com/${channel}?autoplay=true&muted=true`,
+      chat:   `https://kick.com/${channel}/chatroom`,
+      site:   `https://kick.com/${channel}`,
+    };
+  }
+}
+
+function loadStream() {
+  const platform = platformSel.value;
+  const channel  = channelInput.value.trim();
+  if (!channel) { alert('Введи имя канала'); return; }
+
+  const urls = buildUrls(platform, channel);
+  streamFrame.src = urls.stream;
+  chatFrame.src   = urls.chat;
+  chatLink.href   = urls.site;
+
+  localStorage.setItem('sp_platform', platform);
+  localStorage.setItem('sp_channel', channel);
+}
+
+loadBtn.addEventListener('click', loadStream);
+channelInput.addEventListener('keydown', e => { if (e.key === 'Enter') loadStream(); });
+platformSel.addEventListener('change', loadStream);
+
+/* ============================================================
+   МУЗЫКА
+   ============================================================ */
+const audio       = document.getElementById('audio');
+const playBtn     = document.getElementById('playBtn');
+const prevBtn     = document.getElementById('prevBtn');
+const nextBtn     = document.getElementById('nextBtn');
+const volumeInput = document.getElementById('volume');
+const trackTitle  = document.getElementById('trackTitle');
+const trackSub    = document.getElementById('trackSub');
+const progressBar = document.getElementById('progressBar');
+const progressFill= document.getElementById('progressFill');
+const playlistEl  = document.getElementById('playlistItems');
+const trackUrlInp = document.getElementById('trackUrl');
+const addTrackBtn = document.getElementById('addTrack');
+
+let playlist = [];
+let currentIndex = -1;
+
+/* --- Дефолтный плейлист (можно менять) --- */
+const DEFAULT_PLAYLIST = [
+  // { title: 'Название', artist: 'Исполнитель', url: 'https://...mp3' }
+];
+
+/* --- Загрузка/сохранение плейлиста --- */
+function savePlaylist() {
+  localStorage.setItem('sp_playlist', JSON.stringify(playlist));
+}
+function loadPlaylistFromStorage() {
+  try {
+    const raw = localStorage.getItem('sp_playlist');
+    if (raw) playlist = JSON.parse(raw);
+  } catch(e) { playlist = []; }
+  if (!playlist.length) playlist = [...DEFAULT_PLAYLIST];
+}
+
+/* --- Рендер плейлиста --- */
+function renderPlaylist() {
+  playlistEl.innerHTML = '';
+  if (!playlist.length) {
+    playlistEl.innerHTML = '<div style="color:var(--muted);padding:6px 8px;font-size:12px;">Плейлист пуст. Добавь треки ниже.</div>';
+    return;
+  }
+  playlist.forEach((track, i) => {
+    const div = document.createElement('div');
+    div.className = 'playlist-item' + (i === currentIndex ? ' active' : '');
+    div.innerHTML = `<span class="num">${i+1}</span><span>${track.title || track.url.split('/').pop()}</span>`;
+    div.addEventListener('click', () => playTrack(i));
+    playlistEl.appendChild(div);
+  });
+}
+
+/* --- Воспроизведение трека --- */
+function playTrack(index) {
+  if (index < 0 || index >= playlist.length) return;
+  currentIndex = index;
+  const track = playlist[index];
+
+  audio.src = track.url;
+  audio.play().catch(err => {
+    console.warn('Autoplay заблокирован:', err);
+    updatePlayBtn();
+  });
+
+  trackTitle.textContent = track.title || track.url.split('/').pop();
+  trackSub.textContent   = track.artist || 'Локальный / URL';
+  renderPlaylist();
+  updatePlayBtn();
+}
+
+/* --- Play/Pause --- */
+function togglePlay() {
+  if (currentIndex === -1) {
+    if (playlist.length) playTrack(0);
+    return;
+  }
+  if (audio.paused) audio.play().catch(()=>{});
+  else audio.pause();
+}
+
+function updatePlayBtn() {
+  playBtn.textContent = audio.paused ? '▶' : '⏸';
+}
+
+playBtn.addEventListener('click', togglePlay);
+prevBtn.addEventListener('click', () => {
+  if (!playlist.length) return;
+  const i = currentIndex <= 0 ? playlist.length - 1 : currentIndex - 1;
+  playTrack(i);
+});
+nextBtn.addEventListener('click', () => {
+  if (!playlist.length) return;
+  const i = (currentIndex + 1) % playlist.length;
+  playTrack(i);
+});
+
+/* --- Автопереход --- */
+audio.addEventListener('ended', () => {
+  if (playlist.length) {
+    playTrack((currentIndex + 1) % playlist.length);
+  }
+});
+audio.addEventListener('play',  updatePlayBtn);
+audio.addEventListener('pause', updatePlayBtn);
+
+/* --- Прогресс --- */
+audio.addEventListener('timeupdate', () => {
+  if (!audio.duration) return;
+  const pct = (audio.currentTime / audio.duration) * 100;
+  progressFill.style.width = pct + '%';
+});
+progressBar.addEventListener('click', e => {
+  if (!audio.duration) return;
+  const rect = progressBar.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  audio.currentTime = pct * audio.duration;
+});
+
+/* --- Громкость --- */
+volumeInput.addEventListener('input', () => {
+  audio.volume = parseFloat(volumeInput.value);
+  localStorage.setItem('sp_volume', volumeInput.value);
+});
+
+/* --- Добавление трека --- */
+addTrackBtn.addEventListener('click', () => {
+  const val = trackUrlInp.value.trim();
+  if (!val) return;
+
+  // Если это URL — используем как есть
+  // Если просто текст — пробуем поиск (заглушка: подсказка пользователю)
+  if (/^https?:\/\//i.test(val)) {
+    playlist.push({ title: val.split('/').pop(), artist: '', url: val });
+  } else {
+    alert('Вставь прямую ссылку на mp3/ogg файл (начинается с http:// или https://)');
+    return;
+  }
+
+  trackUrlInp.value = '';
+  savePlaylist();
+  renderPlaylist();
+});
+trackUrlInp.addEventListener('keydown', e => {
+  if (e.key === 'Enter') addTrackBtn.click();
+});
+
+/* ============================================================
+   ИНИЦИАЛИЗАЦИЯ
+   ============================================================ */
+(function init() {
+  // Восстановить настройки стрима
+  const savedPlatform = localStorage.getItem('sp_platform');
+  const savedChannel  = localStorage.getItem('sp_channel');
+  if (savedPlatform) platformSel.value = savedPlatform;
+  if (savedChannel)  channelInput.value = savedChannel;
+
+  // Восстановить громкость
+  const savedVol = localStorage.getItem('sp_volume');
+  if (savedVol !== null) {
+    volumeInput.value = savedVol;
+    audio.volume = parseFloat(savedVol);
+  } else {
+    audio.volume = 0.7;
+  }
+
+  // Плейлист
+  loadPlaylistFromStorage();
+  renderPlaylist();
+
+  // Загрузить стрим
+  loadStream();
+})();
+</script>
+
+</body>
+</html>
